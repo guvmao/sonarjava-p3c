@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.elvis.sonar.java</groupId>
+  <artifactId>sonarjava-p3c</artifactId>
+  <version>26.1.0-SNAPSHOT</version>
+  <packaging>sonar-plugin</packaging>
+  <name>SonarJava P3C Plugin</name>
+  <description>P3C Java Rules for SonarQube</description>
+
+  <properties>
+    <!-- SonarQube Community Build 26.1.0.118079 API version -->
+    <sonar.api.version>13.4.3.4290</sonar.api.version>
+    <!-- Latest sonar-java-plugin version -->
+    <sonarjava.version>8.22.0.41895</sonarjava.version>
+    <!-- Test dependencies -->
+    <junit.version>5.11.0</junit.version>
+    <assertj.version>3.26.3</assertj.version>
+    <jacoco.version>0.8.13</jacoco.version>
+    <!-- Build properties -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- SonarQube 26.1.0 requires JDK 21 -->
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <skipTests>false</skipTests>
+  </properties>
+
+  <dependencies>
+    <!-- MAIN sources dependencies -->
+
+    <!-- SonarQube Plugin API -->
+    <dependency>
+      <groupId>org.sonarsource.api.plugin</groupId>
+      <artifactId>sonar-plugin-api</artifactId>
+      <version>${sonar.api.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- SLF4J API -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>2.0.9</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- SonarJava Plugin -->
+    <dependency>
+      <groupId>org.sonarsource.java</groupId>
+      <artifactId>sonar-java-plugin</artifactId>
+      <type>sonar-plugin</type>
+      <version>${sonarjava.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Analyzer Commons - will be packaged by maven-shade-plugin -->
+    <dependency>
+      <groupId>org.sonarsource.analyzer-commons</groupId>
+      <artifactId>sonar-analyzer-commons</artifactId>
+      <version>2.18.0.3393</version>
+    </dependency>
+
+    <!-- TEST sources dependencies -->
+
+    <!-- SonarQube Plugin API Test Fixtures -->
+    <dependency>
+      <groupId>org.sonarsource.api.plugin</groupId>
+      <artifactId>sonar-plugin-api-test-fixtures</artifactId>
+      <version>${sonar.api.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Java Checks Test Kit -->
+    <dependency>
+      <groupId>org.sonarsource.java</groupId>
+      <artifactId>java-checks-testkit</artifactId>
+      <version>${sonarjava.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit Jupiter -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit Jupiter Migration Support -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-migrationsupport</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- AssertJ -->
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>aliyun</id>
+      <name>Aliyun Maven Repository</name>
+      <url>https://maven.aliyun.com/repository/public</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>central</id>
+      <url>https://repo1.maven.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+  </repositories>
+
+  <build>
+    <plugins>
+      <!-- SonarQube Packaging Plugin -->
+      <plugin>
+        <groupId>org.sonarsource.sonar-packaging-maven-plugin</groupId>
+        <artifactId>sonar-packaging-maven-plugin</artifactId>
+        <version>1.23.0.740</version>
+        <extensions>true</extensions>
+        <configuration>
+          <pluginKey>SonarJavaP3CPlugin</pluginKey>
+          <pluginName>SonarJava P3C Plugin</pluginName>
+          <pluginClass>com.elvis.sonar.java.PluginApplication</pluginClass>
+          <sonarLintSupported>true</sonarLintSupported>
+          <skipDependenciesPackaging>true</skipDependenciesPackaging>
+          <pluginApiMinVersion>10.6.0.2114</pluginApiMinVersion>
+          <requirePlugins>java:${sonarjava.version}</requirePlugins>
+          <requiredForLanguages>java</requiredForLanguages>
+        </configuration>
+      </plugin>
+
+      <!-- Maven Shade Plugin - handles dependency packaging when skipDependenciesPackaging=true -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
+          <minimizeJar>false</minimizeJar>
+          <filters>
+            <filter>
+              <artifact>*:*</artifact>
+              <excludes>
+                <exclude>META-INF/*.SF</exclude>
+                <exclude>META-INF/*.DSA</exclude>
+                <exclude>META-INF/*.RSA</exclude>
+              </excludes>
+            </filter>
+          </filters>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Maven Compiler Plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+        </configuration>
+      </plugin>
+
+      <!-- Maven Surefire Plugin for running tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
+
+      <!-- JaCoCo Maven Plugin for code coverage -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Maven Dependency Plugin - for test dependencies -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>copy-test-dependencies</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.slf4j</groupId>
+                  <artifactId>slf4j-api</artifactId>
+                  <version>2.0.9</version>
+                  <type>jar</type>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.apache.commons</groupId>
+                  <artifactId>commons-collections4</artifactId>
+                  <version>4.4</version>
+                  <type>jar</type>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>javax</groupId>
+                  <artifactId>javaee-api</artifactId>
+                  <version>8.0.1</version>
+                  <type>jar</type>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.springframework</groupId>
+                  <artifactId>spring-webmvc</artifactId>
+                  <version>6.1.3</version>
+                  <type>jar</type>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.springframework</groupId>
+                  <artifactId>spring-web</artifactId>
+                  <version>6.1.3</version>
+                  <type>jar</type>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.springframework</groupId>
+                  <artifactId>spring-context</artifactId>
+                  <version>6.1.3</version>
+                  <type>jar</type>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>junit</groupId>
+                  <artifactId>junit</artifactId>
+                  <version>4.13.2</version>
+                  <type>jar</type>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.build.directory}/test-jars</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
