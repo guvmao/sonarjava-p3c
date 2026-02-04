@@ -2,6 +2,7 @@ package com.elvis.sonar.java.checks.naming;
 
 import com.elvis.sonar.java.checks.utils.VariableTreeCheckUtil;
 import org.sonar.check.Rule;
+import org.sonar.check.RuleProperty;
 import org.sonar.plugins.java.api.IssuableSubscriptionVisitor;
 import org.sonar.plugins.java.api.JavaFileScannerContext;
 import org.sonar.plugins.java.api.tree.IdentifierTree;
@@ -22,7 +23,15 @@ import java.util.regex.Pattern;
 @Rule(key = "LowerCamelCaseVariableNamingRule")
 public class LowerCamelCaseVariableNamingRule extends IssuableSubscriptionVisitor {
 
-    private static final String FORMAT = "^[a-z][a-z0-9]*([A-Z][a-z0-9]+)*(DO|DTO|VO|DAO|BO|DOList|DTOList|VOList|DAOList|BOList|X|Y|Z|UDF|UDAF|[A-Z])?$";
+    private static final String DEFAULT_ABBREVIATIONS = "DO,DTO,VO,DAO,BO,DOList,DTOList,VOList,DAOList,BOList,X,Y,Z,UDF,UDAF";
+
+    @RuleProperty(
+        key = "allowedAbbreviations",
+        description = "允许的专有名词缩写，用逗号分隔（例如：DO,DTO,VO,DAO,BO）",
+        defaultValue = DEFAULT_ABBREVIATIONS
+    )
+    public String allowedAbbreviations = DEFAULT_ABBREVIATIONS;
+
     private Pattern pattern = null;
     private static final String DOLLAR = "$";
     private static final String UNDER_LINE = "_";
@@ -30,9 +39,17 @@ public class LowerCamelCaseVariableNamingRule extends IssuableSubscriptionVisito
     @Override
     public void setContext(JavaFileScannerContext context) {
         if (pattern == null) {
-            pattern = Pattern.compile(FORMAT, Pattern.DOTALL);
+            String format = buildFormat();
+            pattern = Pattern.compile(format, Pattern.DOTALL);
         }
         super.setContext(context);
+    }
+
+    private String buildFormat() {
+        String abbreviationPattern = allowedAbbreviations.trim().isEmpty()
+            ? "[A-Z]"
+            : "(" + allowedAbbreviations.replace(",", "|") + "|[A-Z])";
+        return "^[a-z][a-z0-9]*([A-Z][a-z0-9]+)*" + abbreviationPattern + "?$";
     }
 
     @Override

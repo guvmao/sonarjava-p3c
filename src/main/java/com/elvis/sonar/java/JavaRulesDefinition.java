@@ -20,6 +20,7 @@
 package com.elvis.sonar.java;
 
 import com.elvis.sonar.java.pojo.RuleCategory;
+import org.sonar.api.SonarRuntime;
 import org.sonar.api.server.rule.RulesDefinition;
 import org.sonarsource.analyzer.commons.RuleMetadataLoader;
 
@@ -41,6 +42,12 @@ public class JavaRulesDefinition implements RulesDefinition {
     // Add the rule keys of the rules which need to be considered as template-rules
     private static final Set<String> RULE_TEMPLATES_KEY = Collections.emptySet();
 
+    private final SonarRuntime sonarRuntime;
+
+    public JavaRulesDefinition(SonarRuntime sonarRuntime) {
+        this.sonarRuntime = sonarRuntime;
+    }
+
     @Override
     public void define(Context context) {
         NewRepository repository = context.createRepository(REPOSITORY_KEY, "java").setName("Gdrcu Repository");
@@ -49,10 +56,10 @@ public class JavaRulesDefinition implements RulesDefinition {
         repository.done();
     }
 
-    private static void loadMetaData(NewRepository repository){
+    private void loadMetaData(NewRepository repository){
         RuleMetadataLoader ruleMetadataLoader = null;
         for (RuleCategory category : RulesList.getJavaRulesCategory()) {
-            ruleMetadataLoader = new RuleMetadataLoader(RESOURCE_BASE_PATH+"/"+category.getCategoryName());
+            ruleMetadataLoader = new RuleMetadataLoader(RESOURCE_BASE_PATH+"/"+category.getCategoryName(), sonarRuntime);
             ruleMetadataLoader.addRulesByAnnotatedClass(repository, new ArrayList<>(category.getRuleList()));
         }
     }

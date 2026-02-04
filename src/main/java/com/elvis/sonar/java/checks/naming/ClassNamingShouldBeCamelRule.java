@@ -1,6 +1,7 @@
 package com.elvis.sonar.java.checks.naming;
 
 import org.sonar.check.Rule;
+import org.sonar.check.RuleProperty;
 import org.sonar.plugins.java.api.JavaFileScanner;
 import org.sonar.plugins.java.api.JavaFileScannerContext;
 import org.sonar.plugins.java.api.tree.BaseTreeVisitor;
@@ -17,17 +18,33 @@ import java.util.regex.Pattern;
 @Rule(key = "ClassNamingShouldBeCamelRule")
 public class ClassNamingShouldBeCamelRule extends BaseTreeVisitor implements JavaFileScanner {
 
-    private static final String FORMAT = "^I?([A-Z][a-z0-9]+)+(([A-Z])|(DO|DTO|VO|DAO|BO|DAOImpl|YunOS|AO|PO))?$";
+    private static final String DEFAULT_ABBREVIATIONS = "DO,DTO,VO,DAO,BO,DAOImpl,YunOS,AO,PO";
+
+    @RuleProperty(
+        key = "allowedAbbreviations",
+        description = "允许的专有名词缩写，用逗号分隔（例如：DO,DTO,VO,DAO,BO）",
+        defaultValue = DEFAULT_ABBREVIATIONS
+    )
+    public String allowedAbbreviations = DEFAULT_ABBREVIATIONS;
+
     private Pattern pattern = null;
     private JavaFileScannerContext context;
 
     @Override
     public void scanFile(JavaFileScannerContext context) {
         if (pattern == null) {
-            pattern = Pattern.compile(FORMAT, Pattern.DOTALL);
+            String format = buildFormat();
+            pattern = Pattern.compile(format, Pattern.DOTALL);
         }
         this.context = context;
         scan(context.getTree());
+    }
+
+    private String buildFormat() {
+        String abbreviationPattern = allowedAbbreviations.trim().isEmpty()
+            ? "[A-Z]"
+            : "((" + allowedAbbreviations.replace(",", ")|(") + ")|[A-Z])";
+        return "^I?([A-Z][a-z0-9]+)+" + abbreviationPattern + "?$";
     }
 
     @Override
