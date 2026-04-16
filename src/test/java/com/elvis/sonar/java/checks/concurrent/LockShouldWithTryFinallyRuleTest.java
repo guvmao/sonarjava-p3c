@@ -1,6 +1,6 @@
 package com.elvis.sonar.java.checks.concurrent;
 
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -13,7 +13,7 @@ public class LockShouldWithTryFinallyRuleTest {
 
     @org.junit.jupiter.api.Test
     void check() {
-        JavaCheckVerifier.newVerifier()
+        CheckVerifier.newVerifier()
                 .onFile("src/test/files/concurrent/LockShouldWithTryFinallyRule.java")
                 .withCheck(new LockShouldWithTryFinallyRule())
                 .verifyIssues();

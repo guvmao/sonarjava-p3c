@@ -20,7 +20,10 @@
 package com.elvis.sonar.java.checks.oop;
 
 import org.junit.jupiter.api.Test;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
+
+import java.io.File;
+import java.util.Collections;
 
 /**
  * 单元测试
@@ -33,9 +36,21 @@ class EqualsAvoidNullRuleTest {
 
     @Test
     void check() {
-        JavaCheckVerifier.newVerifier()
-                .onFile("src/test/files/oop/EqualsAvoidNullRule.java")
+        CheckVerifier.newVerifier()
+                .onFile("src/test/files/oop/EqualsAvoidNullRuleExample.java")
+                .withClassPath(Collections.singletonList(new File("target/test-classes")))
                 .withCheck(new EqualsAvoidNullRule())
+                .verifyIssues();
+    }
+
+    @Test
+    void check_with_allowed_constant_patterns() {
+        EqualsAvoidNullRule check = new EqualsAvoidNullRule();
+        check.allowedConstantPatterns = "StringConstants\\.STRING_ONE";
+
+        CheckVerifier.newVerifier()
+                .onFile("src/test/files/oop/EqualsAvoidNullRuleFallback.java")
+                .withCheck(check)
                 .verifyIssues();
     }
 

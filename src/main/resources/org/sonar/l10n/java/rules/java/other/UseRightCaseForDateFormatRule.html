@@ -1,0 +1,25 @@
+<p>日期格式化时，年份应该使用小写"y"而不是大写"Y"。</p>
+
+<h2>说明</h2>
+<p>在日期格式化中：</p>
+<ul>
+  <li>小写"y"表示calendar year（日历年）</li>
+  <li>大写"Y"表示week year（周年），这是JDK7引入的概念</li>
+  <li>如果一周跨越两年，使用"YYYY"会返回下一年的年份</li>
+  <li>大写"M"表示月份</li>
+  <li>小写"m"表示分钟</li>
+  <li>大写"H"表示24小时制</li>
+  <li>小写"h"表示12小时制</li>
+</ul>
+
+<h2>正例</h2>
+<pre>
+SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+</pre>
+
+<h2>反例</h2>
+<pre>
+// 错误：使用了大写Y
+SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd");
+// 在2017年12月31日执行时，可能返回2018-12-31，导致严重错误
+</pre>

@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.elvis.sonar.java</groupId>
   <artifactId>sonarjava-p3c</artifactId>
-  <version>25.12.0-SNAPSHOT</version>
+  <version>25.12.2-SNAPSHOT</version>
   <packaging>sonar-plugin</packaging>
   <name>SonarJava P3C Plugin</name>
   <description>P3C Java Rules for SonarQube</description>

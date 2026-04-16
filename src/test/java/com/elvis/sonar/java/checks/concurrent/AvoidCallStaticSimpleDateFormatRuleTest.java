@@ -1,7 +1,7 @@
 package com.elvis.sonar.java.checks.concurrent;
 
 import org.junit.jupiter.api.Test;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -15,7 +15,7 @@ public class AvoidCallStaticSimpleDateFormatRuleTest {
     @Test
     void check() {
 
-        JavaCheckVerifier.newVerifier()
+        CheckVerifier.newVerifier()
                 .onFile("src/test/files/concurrent/AvoidCallStaticSimpleDateFormatRule.java")
                 .withCheck(new AvoidCallStaticSimpleDateFormatRule())
                 .verifyIssues();

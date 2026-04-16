@@ -1,0 +1,15 @@
+{
+  "title": "枚举类型字段必须有Javadoc注释",
+  "type": "CODE_SMELL",
+  "status": "ready",
+  "remediation": {
+    "func": "Constant\/Issue",
+    "constantCost": "5min"
+  },
+  "tags": [
+    "sonarjava-p3c"
+  ],
+  "defaultSeverity": "MAJOR",
+  "sqKey": "EnumConstantsMustHaveCommentRule",
+  "scope": "Main"
+}

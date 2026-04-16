@@ -1,8 +1,8 @@
 package com.elvis.sonar.java.checks.oop;
 
 import com.elvis.sonar.java.checks.utils.MethodInvocationTreeCheckUtil;
-import com.elvis.sonar.java.utils.StringUtils;
 import org.sonar.check.Rule;
+import org.sonar.check.RuleProperty;
 import org.sonar.plugins.java.api.IssuableSubscriptionVisitor;
 import org.sonar.plugins.java.api.semantic.Symbol;
 import org.sonar.plugins.java.api.tree.ExpressionTree;
@@ -10,9 +10,12 @@ import org.sonar.plugins.java.api.tree.IdentifierTree;
 import org.sonar.plugins.java.api.tree.MemberSelectExpressionTree;
 import org.sonar.plugins.java.api.tree.MethodInvocationTree;
 import org.sonar.plugins.java.api.tree.Tree;
+import org.sonar.plugins.java.api.tree.VariableTree;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 /**
@@ -25,6 +28,17 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
 
     private static final String MESSAGE = "【%s】应该作为equals的参数，而不是调用方";
     private static final String METHOD_EQUALS = "equals";
+    private static final String OBJECTS_CLASS = "java.util.Objects";
+    private static final String DEFAULT_ALLOWED_CONSTANT_PATTERNS = "";
+
+    @RuleProperty(
+        key = "allowedConstantPatterns",
+        description = "语义解析失败时允许放行的常量白名单，支持正则，多个表达式用逗号分隔，例如：StringConstants\\.STRING_ONE,.*Constants\\.STRING_.*",
+        defaultValue = DEFAULT_ALLOWED_CONSTANT_PATTERNS
+    )
+    public String allowedConstantPatterns = DEFAULT_ALLOWED_CONSTANT_PATTERNS;
+
+    private List<Pattern> compiledAllowedConstantPatterns = null;
 
     @Override
     public List<Tree.Kind> nodesToVisit() {
@@ -34,6 +48,9 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
 
     @Override
     public void visitNode(Tree tree) {
+        if (compiledAllowedConstantPatterns == null) {
+            compiledAllowedConstantPatterns = compileAllowedConstantPatterns();
+        }
         if (tree.is(Tree.Kind.METHOD_INVOCATION)) {
             MethodInvocationTree methodInvocation = (MethodInvocationTree) tree;
             if (METHOD_EQUALS.equals(MethodInvocationTreeCheckUtil.getMethodName(methodInvocation))) {
@@ -43,6 +60,10 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     }
 
     private void checkEqualsInvocation(MethodInvocationTree methodInvocation) {
+        if (isObjectsEquals(methodInvocation)) {
+            return;
+        }
+
         ExpressionTree receiver = MethodInvocationTreeCheckUtil.getReceiver(methodInvocation);
         // 如果参数是字面量（如字符串字面量），则不需要进一步检查
         if (isLiteral(receiver)) {
@@ -51,12 +72,26 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
 
         // 检查参数是否为常量或确定不为null的对象
         if (!isConstantOrNonNullObject(receiver)) {
-            String methodName = MethodInvocationTreeCheckUtil.getName(methodInvocation);
-            if(StringUtils.isBlankOrNull(methodName)){
-                methodName = "Object";
-            }
+            String methodName = receiver == null ? "Object" : expressionToText(receiver);
             reportIssue(receiver, String.format(MESSAGE, methodName));
         }
+    }
+
+    private boolean isObjectsEquals(MethodInvocationTree methodInvocation) {
+        if (!METHOD_EQUALS.equals(MethodInvocationTreeCheckUtil.getMethodName(methodInvocation))) {
+            return false;
+        }
+
+        ExpressionTree receiver = MethodInvocationTreeCheckUtil.getReceiver(methodInvocation);
+        if (receiver == null) {
+            return false;
+        }
+
+        if (receiver.symbolType() != null && receiver.symbolType().is(OBJECTS_CLASS)) {
+            return true;
+        }
+
+        return OBJECTS_CLASS.equals(expressionToText(receiver));
     }
 
     private boolean isLiteral(ExpressionTree expression) {
@@ -74,7 +109,7 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
         if (expression.is(Tree.Kind.IDENTIFIER)) {
             IdentifierTree identifier = (IdentifierTree) expression;
             Symbol symbol = identifier.symbol();
-            if (symbol.isVariableSymbol() && symbol.isFinal()) {
+            if (isFinalVariable(symbol)) {
                 return true;
             }
         }
@@ -83,11 +118,72 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
         if (expression.is(Tree.Kind.MEMBER_SELECT)) {
             MemberSelectExpressionTree memberSelect = (MemberSelectExpressionTree) expression;
             Symbol symbol = memberSelect.identifier().symbol();
-            if (symbol.isVariableSymbol() && symbol.isFinal() && symbol.isStatic()) {
+            if (isStaticFinalVariable(symbol)) {
+                return true;
+            }
+            if ((symbol == null || symbol.isUnknown()) && matchesAllowedConstantPattern(memberSelect)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private boolean isFinalVariable(Symbol symbol) {
+        if (symbol == null || !symbol.isVariableSymbol()) {
+            return false;
+        }
+        if (symbol.isFinal()) {
+            return true;
+        }
+        Tree declaration = symbol.declaration();
+        return declaration != null
+                && declaration.is(Tree.Kind.VARIABLE)
+                && ((VariableTree) declaration).modifiers().modifiers().stream()
+                .anyMatch(modifier -> modifier.modifier() == org.sonar.plugins.java.api.tree.Modifier.FINAL);
+    }
+
+    private boolean isStaticFinalVariable(Symbol symbol) {
+        if (symbol == null || !symbol.isVariableSymbol()) {
+            return false;
+        }
+        if (symbol.isFinal() && symbol.isStatic()) {
+            return true;
+        }
+        Tree declaration = symbol.declaration();
+        if (declaration == null || !declaration.is(Tree.Kind.VARIABLE)) {
+            return false;
+        }
+        VariableTree variableTree = (VariableTree) declaration;
+        boolean hasFinal = variableTree.modifiers().modifiers().stream()
+                .anyMatch(modifier -> modifier.modifier() == org.sonar.plugins.java.api.tree.Modifier.FINAL);
+        boolean hasStatic = variableTree.modifiers().modifiers().stream()
+                .anyMatch(modifier -> modifier.modifier() == org.sonar.plugins.java.api.tree.Modifier.STATIC);
+        return hasFinal && hasStatic;
+    }
+
+    private List<Pattern> compileAllowedConstantPatterns() {
+        return Arrays.stream(allowedConstantPatterns.split(","))
+                .map(String::trim)
+                .filter(pattern -> !pattern.isEmpty())
+                .map(Pattern::compile)
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesAllowedConstantPattern(MemberSelectExpressionTree memberSelect) {
+        String reference = expressionToText(memberSelect);
+        return compiledAllowedConstantPatterns.stream()
+                .anyMatch(pattern -> pattern.matcher(reference).matches());
+    }
+
+    private String expressionToText(ExpressionTree expression) {
+        if (expression.is(Tree.Kind.IDENTIFIER)) {
+            return ((IdentifierTree) expression).name();
+        }
+        if (expression.is(Tree.Kind.MEMBER_SELECT)) {
+            MemberSelectExpressionTree memberSelect = (MemberSelectExpressionTree) expression;
+            return expressionToText(memberSelect.expression()) + "." + memberSelect.identifier().name();
+        }
+        return expression.toString();
     }
 }
