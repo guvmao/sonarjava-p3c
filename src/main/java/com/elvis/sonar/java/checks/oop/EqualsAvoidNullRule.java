@@ -177,12 +177,22 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     }
 
     private String expressionToText(ExpressionTree expression) {
+        if (expression == null) {
+            return "Object";
+        }
         if (expression.is(Tree.Kind.IDENTIFIER)) {
             return ((IdentifierTree) expression).name();
         }
         if (expression.is(Tree.Kind.MEMBER_SELECT)) {
             MemberSelectExpressionTree memberSelect = (MemberSelectExpressionTree) expression;
             return expressionToText(memberSelect.expression()) + "." + memberSelect.identifier().name();
+        }
+        if (expression.is(Tree.Kind.METHOD_INVOCATION)) {
+            MethodInvocationTree methodInvocation = (MethodInvocationTree) expression;
+            String argumentsText = methodInvocation.arguments().stream()
+                    .map(this::expressionToText)
+                    .collect(Collectors.joining(", "));
+            return expressionToText(methodInvocation.methodSelect()) + "(" + argumentsText + ")";
         }
         return expression.toString();
     }
