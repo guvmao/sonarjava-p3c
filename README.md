@@ -2,7 +2,7 @@
 
 ------
 编译命令：
-mvn clean package -Dmaven.test.skip=true -f pom_SQ_26_1_0_LATEST_OPTIMIZED.xml
+mvn clean package -Dmaven.test.skip=true -f pom_SQ_25_12.xml
 
 
 #### 概述
