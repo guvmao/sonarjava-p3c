@@ -20,7 +20,7 @@
 package com.elvis.sonar.java.checks.constant;
 
 import org.junit.jupiter.api.Test;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -33,7 +33,7 @@ class UndefineMagicConstantRuleTest {
 
     @Test
     void check() {
-        JavaCheckVerifier.newVerifier()
+        CheckVerifier.newVerifier()
                 .onFile("src/test/files/constant/UndefineMagicConstantRule.java")
                 .withCheck(new UndefineMagicConstantRule())
                 .verifyIssues();

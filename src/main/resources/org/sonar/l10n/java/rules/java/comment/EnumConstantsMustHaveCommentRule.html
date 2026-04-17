@@ -1,0 +1,25 @@
+<p>所有枚举类型字段都应该有Javadoc风格的注释。</p>
+
+<h2>说明</h2>
+<p>枚举类型的每个常量都应该有清晰的注释说明其含义，这有助于代码的可读性和可维护性。</p>
+
+<h2>正例</h2>
+<pre>
+public enum TestEnum {
+    /**
+     * agree
+     */
+    agree("agree"),
+    /**
+     * reject
+     */
+    reject("reject");
+    private String action;
+    TestEnum(String action) {
+        this.action = action;
+    }
+    public String getAction() {
+        return action;
+    }
+}
+</pre>

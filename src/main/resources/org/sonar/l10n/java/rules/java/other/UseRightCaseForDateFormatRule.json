@@ -1,0 +1,15 @@
+{
+  "title": "日期格式化应使用小写'y'表示年份",
+  "type": "BUG",
+  "status": "ready",
+  "remediation": {
+    "func": "Constant\/Issue",
+    "constantCost": "2min"
+  },
+  "tags": [
+    "sonarjava-p3c"
+  ],
+  "defaultSeverity": "CRITICAL",
+  "sqKey": "UseRightCaseForDateFormatRule",
+  "scope": "Main"
+}

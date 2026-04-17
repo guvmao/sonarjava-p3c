@@ -1,7 +1,7 @@
 package com.elvis.sonar.java.checks.comment;
 
 import org.junit.jupiter.api.Test;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -15,7 +15,7 @@ public class ClassMustHaveAuthorRuleTest {
     @Test
     void check() {
 
-        JavaCheckVerifier.newVerifier()
+        CheckVerifier.newVerifier()
                 .onFile("src/test/files/comment/ClassMustHaveAuthorRule.java")
                 .withCheck(new ClassMustHaveAuthorRule())
                 .verifyIssues();

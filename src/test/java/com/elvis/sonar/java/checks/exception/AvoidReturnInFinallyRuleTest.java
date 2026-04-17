@@ -2,7 +2,7 @@ package com.elvis.sonar.java.checks.exception;
 
 import com.elvis.sonar.java.checks.concurrent.AvoidCallStaticSimpleDateFormatRule;
 import org.junit.jupiter.api.Test;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -16,7 +16,7 @@ public class AvoidReturnInFinallyRuleTest {
     @Test
     void check() {
 
-        JavaCheckVerifier.newVerifier()
+        CheckVerifier.newVerifier()
                 .onFile("src/test/files/exception/AvoidReturnInFinallyRule.java")
                 .withCheck(new AvoidReturnInFinallyRule())
                 .verifyIssues();

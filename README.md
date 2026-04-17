@@ -1,7 +1,8 @@
 ### SonarQube Java自定义规则开发说明文档
 
 ------
-
+编译命令：
+mvn clean package -Dmaven.test.skip=true -f pom_SQ_25_12.xml
 
 
 #### 概述

@@ -22,7 +22,7 @@ package com.elvis.sonar.java.checks.naming;
 import com.elvis.sonar.java.log.utils.LogUtil;
 import org.junit.jupiter.api.Test;
 import org.sonar.api.SonarProduct;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -34,7 +34,7 @@ class ArrayNamingShouldHaveBracketRuleTest {
 
   @Test
   void check() {
-    JavaCheckVerifier.newVerifier()
+    CheckVerifier.newVerifier()
       .onFile("src/test/files/naming/ArrayNamingShouldHaveBracketRule.java")
       .withCheck(new ArrayNamingShouldHaveBracketRule())
       .verifyIssues();

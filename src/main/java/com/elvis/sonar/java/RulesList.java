@@ -23,6 +23,7 @@ import com.elvis.sonar.java.checks.comment.AbstractMethodOrInterfaceMethodMustUs
 import com.elvis.sonar.java.checks.comment.AvoidCommentBehindStatementRule;
 import com.elvis.sonar.java.checks.comment.ClassMustHaveAuthorRule;
 import com.elvis.sonar.java.checks.comment.CommentsMustBeJavadocFormatRule;
+import com.elvis.sonar.java.checks.comment.EnumConstantsMustHaveCommentRule;
 import com.elvis.sonar.java.checks.concurrent.AvoidCallStaticSimpleDateFormatRule;
 import com.elvis.sonar.java.checks.concurrent.AvoidConcurrentCompetitionRandomRule;
 import com.elvis.sonar.java.checks.concurrent.AvoidManuallyCreateThreadRule;
@@ -31,6 +32,7 @@ import com.elvis.sonar.java.checks.concurrent.CountDownShouldInFinallyRule;
 import com.elvis.sonar.java.checks.concurrent.LockShouldWithTryFinallyRule;
 import com.elvis.sonar.java.checks.concurrent.ThreadLocalShouldRemoveRule;
 import com.elvis.sonar.java.checks.concurrent.ThreadPoolCreationRule;
+import com.elvis.sonar.java.checks.concurrent.ThreadShouldSetNameRule;
 import com.elvis.sonar.java.checks.constant.UndefineMagicConstantRule;
 import com.elvis.sonar.java.checks.constant.UpperEllRule;
 import com.elvis.sonar.java.checks.exception.AvoidReturnInFinallyRule;
@@ -66,6 +68,7 @@ import com.elvis.sonar.java.checks.other.AvoidMissUseOfMathRandomRule;
 import com.elvis.sonar.java.checks.other.AvoidNewDateGetTimeRule;
 import com.elvis.sonar.java.checks.other.AvoidPatternCompileInMethodRule;
 import com.elvis.sonar.java.checks.other.MethodTooLongRule;
+import com.elvis.sonar.java.checks.other.UseRightCaseForDateFormatRule;
 import com.elvis.sonar.java.checks.set.ClassCastExceptionWithSubListToArrayListRule;
 import com.elvis.sonar.java.checks.set.ClassCastExceptionWithToArrayRule;
 import com.elvis.sonar.java.checks.set.CollectionInitShouldAssignCapacityRule;
@@ -148,7 +151,8 @@ public final class RulesList {
                         CommentsMustBeJavadocFormatRule.class,
                         AvoidCommentBehindStatementRule.class,
                         AbstractMethodOrInterfaceMethodMustUseJavadocRule.class,
-                        ClassMustHaveAuthorRule.class)));
+                        ClassMustHaveAuthorRule.class,
+                        EnumConstantsMustHaveCommentRule.class)));
     }
 
     /**
@@ -166,7 +170,8 @@ public final class RulesList {
                         CountDownShouldInFinallyRule.class,
                         ThreadLocalShouldRemoveRule.class,
                         ThreadPoolCreationRule.class,
-                        LockShouldWithTryFinallyRule.class)));
+                        LockShouldWithTryFinallyRule.class,
+                        ThreadShouldSetNameRule.class)));
     }
 
     /**
@@ -266,7 +271,8 @@ public final class RulesList {
                         AvoidApacheBeanUtilsCopyRule.class,
                         AvoidNewDateGetTimeRule.class,
                         AvoidMissUseOfMathRandomRule.class,
-                        AvoidDoubleOrFloatEqualCompareRule.class)));
+                        AvoidDoubleOrFloatEqualCompareRule.class,
+                        UseRightCaseForDateFormatRule.class)));
     }
 
     private static List<Class<? extends JavaCheck>> merge(RuleCategory... categories) {

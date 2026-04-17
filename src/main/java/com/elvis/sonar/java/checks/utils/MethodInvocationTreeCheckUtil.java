@@ -158,6 +158,9 @@ public class MethodInvocationTreeCheckUtil {
             IdentifierTree idt = (IdentifierTree) mseTree.expression();
             return idt.name();
         }
+        if (mseTree.expression().is(Tree.Kind.MEMBER_SELECT)) {
+            return mseTree.expression().toString();
+        }
         return null;
     }
 

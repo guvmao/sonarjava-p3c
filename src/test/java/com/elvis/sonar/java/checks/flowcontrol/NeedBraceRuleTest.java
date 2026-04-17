@@ -1,7 +1,7 @@
 package com.elvis.sonar.java.checks.flowcontrol;
 
 import org.junit.jupiter.api.Test;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -14,7 +14,7 @@ public class NeedBraceRuleTest {
 
     @Test
     void check() {
-        JavaCheckVerifier.newVerifier()
+        CheckVerifier.newVerifier()
                 .onFile("src/test/files/flowcontrol/NeedBraceRule.java")
                 .withCheck(new NeedBraceRule())
                 .verifyIssues();

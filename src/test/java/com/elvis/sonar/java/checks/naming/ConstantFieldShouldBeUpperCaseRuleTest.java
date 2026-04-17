@@ -20,7 +20,7 @@
 package com.elvis.sonar.java.checks.naming;
 
 import org.junit.jupiter.api.Test;
-import org.sonar.java.checks.verifier.JavaCheckVerifier;
+import org.sonar.java.checks.verifier.CheckVerifier;
 
 /**
  * 单元测试
@@ -33,9 +33,20 @@ class ConstantFieldShouldBeUpperCaseRuleTest {
 
     @Test
     void check() {
-        JavaCheckVerifier.newVerifier()
+        CheckVerifier.newVerifier()
                 .onFile("src/test/files/naming/ConstantFieldShouldBeUpperCaseRule.java")
                 .withCheck(new ConstantFieldShouldBeUpperCaseRule())
+                .verifyIssues();
+    }
+
+    @Test
+    void check_with_allowed_exceptions() {
+        ConstantFieldShouldBeUpperCaseRule check = new ConstantFieldShouldBeUpperCaseRule();
+        check.allowedExceptions = "serialVersionUID,log";
+
+        CheckVerifier.newVerifier()
+                .onFile("src/test/files/naming/ConstantFieldShouldBeUpperCaseRuleCustom.java")
+                .withCheck(check)
                 .verifyIssues();
     }
 

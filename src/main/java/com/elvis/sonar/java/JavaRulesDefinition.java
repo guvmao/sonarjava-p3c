@@ -24,6 +24,7 @@ import org.sonar.api.SonarRuntime;
 import org.sonar.api.server.rule.RulesDefinition;
 import org.sonarsource.analyzer.commons.RuleMetadataLoader;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
@@ -41,7 +42,6 @@ public class JavaRulesDefinition implements RulesDefinition {
 
     // Add the rule keys of the rules which need to be considered as template-rules
     private static final Set<String> RULE_TEMPLATES_KEY = Collections.emptySet();
-
     private final SonarRuntime sonarRuntime;
 
     public JavaRulesDefinition(SonarRuntime sonarRuntime) {
@@ -59,8 +59,25 @@ public class JavaRulesDefinition implements RulesDefinition {
     private void loadMetaData(NewRepository repository){
         RuleMetadataLoader ruleMetadataLoader = null;
         for (RuleCategory category : RulesList.getJavaRulesCategory()) {
-            ruleMetadataLoader = new RuleMetadataLoader(RESOURCE_BASE_PATH+"/"+category.getCategoryName(), sonarRuntime);
+            ruleMetadataLoader = createRuleMetadataLoader(category.getCategoryName());
             ruleMetadataLoader.addRulesByAnnotatedClass(repository, new ArrayList<>(category.getRuleList()));
+        }
+    }
+
+    private RuleMetadataLoader createRuleMetadataLoader(String categoryName) {
+        String metadataPath = RESOURCE_BASE_PATH + "/" + categoryName;
+        try {
+            Constructor<RuleMetadataLoader> runtimeCtor =
+                    RuleMetadataLoader.class.getConstructor(String.class, SonarRuntime.class);
+            return runtimeCtor.newInstance(metadataPath, sonarRuntime);
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                Constructor<RuleMetadataLoader> legacyCtor =
+                        RuleMetadataLoader.class.getConstructor(String.class);
+                return legacyCtor.newInstance(metadataPath);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Unable to create RuleMetadataLoader for " + metadataPath, e);
+            }
         }
     }
 
