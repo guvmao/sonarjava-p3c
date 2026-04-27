@@ -5,5 +5,10 @@ class LowerCamelCaseVariableNamingRule {
                          String Check2) {  // Noncompliant {{变量名【Check2】不符合lowerCamelCase命名风格}}
         String checkPoint1 = "test";
         String CheckPoint2 = "test2";  // Noncompliant {{变量名【CheckPoint2】不符合lowerCamelCase命名风格}}
+        String rabbitMQMessageHandler = "test3"; // Compliant
+        String orderDTOMessageService = "test4"; // Compliant
+    }
+
+    private void handleMQMessage() { // Compliant
     }
 }

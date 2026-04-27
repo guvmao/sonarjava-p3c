@@ -33,9 +33,12 @@ class LowerCamelCaseVariableNamingRuleTest {
 
     @Test
     void check() {
+        LowerCamelCaseVariableNamingRule rule = new LowerCamelCaseVariableNamingRule();
+        rule.allowedAbbreviations = "DO,DTO,VO,DAO,BO,DOList,DTOList,VOList,DAOList,BOList,X,Y,Z,UDF,UDAF,MQ";
+
         CheckVerifier.newVerifier()
                 .onFile("src/test/files/naming/LowerCamelCaseVariableNamingRule.java")
-                .withCheck(new LowerCamelCaseVariableNamingRule())
+                .withCheck(rule)
                 .verifyIssues();
     }
 

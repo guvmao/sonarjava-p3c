@@ -12,3 +12,9 @@ class ClassNamingShouldBeCamelRule { // Compliant
 class ProductTypeServiceImpl { // Compliant
 
 }
+
+class RabbitMQMessageHandler { // Compliant
+}
+
+class OrderDTOMessageService { // Compliant
+}

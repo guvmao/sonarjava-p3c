@@ -33,9 +33,12 @@ class ClassNamingShouldBeCamelRuleTest {
 
     @Test
     void check() {
+        ClassNamingShouldBeCamelRule rule = new ClassNamingShouldBeCamelRule();
+        rule.allowedAbbreviations = "DO,DTO,VO,DAO,BO,DAOImpl,YunOS,AO,PO,MQ";
+
         CheckVerifier.newVerifier()
                 .onFile("src/test/files/naming/ClassNamingShouldBeCamelRule.java")
-                .withCheck(new ClassNamingShouldBeCamelRule())
+                .withCheck(rule)
                 .verifyIssues();
     }
 

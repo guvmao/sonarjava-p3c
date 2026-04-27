@@ -8,7 +8,9 @@ import org.sonar.plugins.java.api.tree.BaseTreeVisitor;
 import org.sonar.plugins.java.api.tree.ClassTree;
 import org.sonar.plugins.java.api.tree.Tree;
 
+import java.util.Arrays;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author fengbingjian
@@ -41,10 +43,23 @@ public class ClassNamingShouldBeCamelRule extends BaseTreeVisitor implements Jav
     }
 
     private String buildFormat() {
-        String abbreviationPattern = allowedAbbreviations.trim().isEmpty()
-            ? "[A-Z]"
-            : "((" + allowedAbbreviations.replace(",", ")|(") + ")|[A-Z])";
-        return "^I?([A-Z][a-z0-9]+)+" + abbreviationPattern + "?$";
+        String abbreviationPattern = buildAbbreviationPattern();
+        String segmentPattern = abbreviationPattern.isEmpty()
+            ? "[A-Z][a-z0-9]+"
+            : "(?:" + abbreviationPattern + "|[A-Z][a-z0-9]+)";
+        return "^I?(?:" + segmentPattern + ")+[A-Z]?$";
+    }
+
+    private String buildAbbreviationPattern() {
+        if (allowedAbbreviations.trim().isEmpty()) {
+            return "";
+        }
+        return Arrays.stream(allowedAbbreviations.split(","))
+            .map(String::trim)
+            .filter(item -> !item.isEmpty())
+            .sorted((left, right) -> Integer.compare(right.length(), left.length()))
+            .map(Pattern::quote)
+            .collect(Collectors.joining("|"));
     }
 
     @Override

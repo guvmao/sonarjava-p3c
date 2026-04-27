@@ -11,9 +11,9 @@ import org.sonar.plugins.java.api.tree.Tree;
 import org.sonar.plugins.java.api.tree.VariableTree;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author fengbingjian
@@ -46,10 +46,23 @@ public class LowerCamelCaseVariableNamingRule extends IssuableSubscriptionVisito
     }
 
     private String buildFormat() {
-        String abbreviationPattern = allowedAbbreviations.trim().isEmpty()
-            ? "[A-Z]"
-            : "(" + allowedAbbreviations.replace(",", "|") + "|[A-Z])";
-        return "^[a-z][a-z0-9]*([A-Z][a-z0-9]+)*" + abbreviationPattern + "?$";
+        String abbreviationPattern = buildAbbreviationPattern();
+        String segmentPattern = abbreviationPattern.isEmpty()
+            ? "[A-Z][a-z0-9]+"
+            : "(?:" + abbreviationPattern + "|[A-Z][a-z0-9]+)";
+        return "^[a-z][a-z0-9]*(?:" + segmentPattern + ")*[A-Z]?$";
+    }
+
+    private String buildAbbreviationPattern() {
+        if (allowedAbbreviations.trim().isEmpty()) {
+            return "";
+        }
+        return Arrays.stream(allowedAbbreviations.split(","))
+            .map(String::trim)
+            .filter(item -> !item.isEmpty())
+            .sorted((left, right) -> Integer.compare(right.length(), left.length()))
+            .map(Pattern::quote)
+            .collect(Collectors.joining("|"));
     }
 
     @Override
