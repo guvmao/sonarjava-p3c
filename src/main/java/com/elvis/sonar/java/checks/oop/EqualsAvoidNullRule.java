@@ -5,6 +5,7 @@ import org.sonar.check.Rule;
 import org.sonar.check.RuleProperty;
 import org.sonar.plugins.java.api.IssuableSubscriptionVisitor;
 import org.sonar.plugins.java.api.semantic.Symbol;
+import org.sonar.plugins.java.api.semantic.Type;
 import org.sonar.plugins.java.api.tree.ExpressionTree;
 import org.sonar.plugins.java.api.tree.IdentifierTree;
 import org.sonar.plugins.java.api.tree.MemberSelectExpressionTree;
@@ -100,12 +101,12 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     }
 
     private boolean isConstantOrNonNullObject(ExpressionTree expression) {
-        // 检查是否为字面量
+        // 字面量
         if (isLiteral(expression)) {
             return true;
         }
 
-        // 检查是否为final变量
+        // final局部变量或成员变量（直接标识符）
         if (expression.is(Tree.Kind.IDENTIFIER)) {
             IdentifierTree identifier = (IdentifierTree) expression;
             Symbol symbol = identifier.symbol();
@@ -114,11 +115,13 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
             }
         }
 
-        // 检查是否为静态final字段
         if (expression.is(Tree.Kind.MEMBER_SELECT)) {
             MemberSelectExpressionTree memberSelect = (MemberSelectExpressionTree) expression;
             Symbol symbol = memberSelect.identifier().symbol();
             if (isStaticFinalVariable(symbol)) {
+                return true;
+            }
+            if (isFinalInstanceFieldViaThis(memberSelect)) {
                 return true;
             }
             if ((symbol == null || symbol.isUnknown()) && matchesAllowedConstantPattern(memberSelect)) {
@@ -126,6 +129,53 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
             }
         }
 
+        // 枚举类型不可能为null，递归追踪调用链根部是否为枚举
+        // 覆盖：status.equals(x)、status.getCode().equals(x)、Status.ENABLE.getCode().equals(x)
+        if (isRootedInEnum(expression)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isEnumType(ExpressionTree expression) {
+        Type type = expression.symbolType();
+        if (type == null || type.isUnknown()) {
+            return false;
+        }
+        Symbol.TypeSymbol typeSymbol = type.symbol();
+        return typeSymbol != null && typeSymbol.isEnum();
+    }
+
+    private boolean isFinalInstanceFieldViaThis(MemberSelectExpressionTree memberSelect) {
+        ExpressionTree qualifier = memberSelect.expression();
+        if (!qualifier.is(Tree.Kind.IDENTIFIER)) {
+            return false;
+        }
+        String qualifierName = ((IdentifierTree) qualifier).name();
+        if (!"this".equals(qualifierName) && !"super".equals(qualifierName)) {
+            return false;
+        }
+        return isFinalVariable(memberSelect.identifier().symbol());
+    }
+
+    /**
+     * 递归追踪表达式链的根部，判断是否为枚举类型。
+     * 覆盖：status.getCode().equals(x)、Status.ENABLE.getCode().equals(x) 等调用链场景。
+     */
+    private boolean isRootedInEnum(ExpressionTree expression) {
+        if (expression == null) {
+            return false;
+        }
+        if (isEnumType(expression)) {
+            return true;
+        }
+        if (expression.is(Tree.Kind.MEMBER_SELECT)) {
+            return isRootedInEnum(((MemberSelectExpressionTree) expression).expression());
+        }
+        if (expression.is(Tree.Kind.METHOD_INVOCATION)) {
+            return isRootedInEnum(((MethodInvocationTree) expression).methodSelect());
+        }
         return false;
     }
 

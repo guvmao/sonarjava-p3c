@@ -54,6 +54,51 @@ public class EqualsAvoidNullRuleExample {
             System.out.println("Input matches the expected value.");
         }
     }
+
+    private final String finalField = "finalValue";
+
+    public void checkFinalField(String input) {
+        boolean result = this.finalField.equals(input); // Compliant
+        if (result) {
+            System.out.println("Input matches the final field.");
+        }
+    }
+
+    public void checkEnum(Status status, String input) {
+        boolean result = status.equals(input); // Compliant
+        if (result) {
+            System.out.println("Status matches.");
+        }
+    }
+
+    public void checkEnumGetter(Status status, String input) {
+        boolean result = status.getCode().equals(input); // Compliant
+        if (result) {
+            System.out.println("Status code matches.");
+        }
+    }
+
+    public void checkEnumConstantGetter(String input) {
+        boolean result = Status.ENABLE.getCode().equals(input); // Compliant
+        if (result) {
+            System.out.println("Status ENABLE code matches.");
+        }
+    }
+}
+
+enum Status {
+    ENABLE("1"),
+    DISABLE("0");
+
+    private final String code;
+
+    Status(String code) {
+        this.code = code;
+    }
+
+    public String getCode() {
+        return code;
+    }
 }
 
 class Constants {
