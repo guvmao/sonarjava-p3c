@@ -31,6 +31,7 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     private static final String METHOD_EQUALS = "equals";
     private static final String OBJECTS_CLASS = "java.util.Objects";
     private static final String DEFAULT_ALLOWED_CONSTANT_PATTERNS = "";
+    private static final String DEFAULT_ALLOWED_UTILITY_CLASS_PATTERNS = ".*\\.StringUtil,.*\\.StringUtils,.*\\.StrUtil";
 
     @RuleProperty(
         key = "allowedConstantPatterns",
@@ -39,7 +40,15 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     )
     public String allowedConstantPatterns = DEFAULT_ALLOWED_CONSTANT_PATTERNS;
 
+    @RuleProperty(
+        key = "allowedUtilityClassPatterns",
+        description = "允许作为equals安全调用方的工具类全限定名白名单，支持正则，多个用逗号分隔（例如：.*\\.StringUtil,.*\\.StringUtils）",
+        defaultValue = DEFAULT_ALLOWED_UTILITY_CLASS_PATTERNS
+    )
+    public String allowedUtilityClassPatterns = DEFAULT_ALLOWED_UTILITY_CLASS_PATTERNS;
+
     private List<Pattern> compiledAllowedConstantPatterns = null;
+    private List<Pattern> compiledAllowedUtilityClassPatterns = null;
 
     @Override
     public List<Tree.Kind> nodesToVisit() {
@@ -50,7 +59,10 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     @Override
     public void visitNode(Tree tree) {
         if (compiledAllowedConstantPatterns == null) {
-            compiledAllowedConstantPatterns = compileAllowedConstantPatterns();
+            compiledAllowedConstantPatterns = compilePatterns(allowedConstantPatterns);
+        }
+        if (compiledAllowedUtilityClassPatterns == null) {
+            compiledAllowedUtilityClassPatterns = compilePatterns(allowedUtilityClassPatterns);
         }
         if (tree.is(Tree.Kind.METHOD_INVOCATION)) {
             MethodInvocationTree methodInvocation = (MethodInvocationTree) tree;
@@ -88,11 +100,18 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
             return false;
         }
 
-        if (receiver.symbolType() != null && receiver.symbolType().is(OBJECTS_CLASS)) {
-            return true;
+        String typeName = null;
+        if (receiver.symbolType() != null) {
+            typeName = receiver.symbolType().fullyQualifiedName();
+        }
+        if (typeName == null) {
+            typeName = expressionToText(receiver);
         }
 
-        return OBJECTS_CLASS.equals(expressionToText(receiver));
+        if (OBJECTS_CLASS.equals(typeName)) {
+            return true;
+        }
+        return matchesAllowedUtilityClassPattern(typeName);
     }
 
     private boolean isLiteral(ExpressionTree expression) {
@@ -212,8 +231,8 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
         return hasFinal && hasStatic;
     }
 
-    private List<Pattern> compileAllowedConstantPatterns() {
-        return Arrays.stream(allowedConstantPatterns.split(","))
+    private List<Pattern> compilePatterns(String input) {
+        return Arrays.stream(input.split(","))
                 .map(String::trim)
                 .filter(pattern -> !pattern.isEmpty())
                 .map(Pattern::compile)
@@ -224,6 +243,14 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
         String reference = expressionToText(memberSelect);
         return compiledAllowedConstantPatterns.stream()
                 .anyMatch(pattern -> pattern.matcher(reference).matches());
+    }
+
+    private boolean matchesAllowedUtilityClassPattern(String className) {
+        if (className == null || className.isEmpty()) {
+            return false;
+        }
+        return compiledAllowedUtilityClassPatterns.stream()
+                .anyMatch(pattern -> pattern.matcher(className).matches());
     }
 
     private String expressionToText(ExpressionTree expression) {

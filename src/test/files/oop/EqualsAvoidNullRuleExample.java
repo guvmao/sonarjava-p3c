@@ -48,6 +48,13 @@ public class EqualsAvoidNullRuleExample {
         }
     }
 
+    public void check6b(String left, String right) {
+        boolean result = StringUtil.equals(left, right); // Compliant
+        if (result) {
+            System.out.println("Input matches the expected value.");
+        }
+    }
+
     public void check7(RateQueryDTO rateQueryDTO) {
         boolean result = rateQueryDTO.getToCurrency().equals(Constants.EXPECTED_VALUE); // Noncompliant {{【rateQueryDTO.getToCurrency()】应该作为equals的参数，而不是调用方}}
         if (result) {
