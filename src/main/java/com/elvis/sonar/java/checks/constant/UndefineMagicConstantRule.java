@@ -2,8 +2,12 @@ package com.elvis.sonar.java.checks.constant;
 
 import org.sonar.check.Rule;
 import org.sonar.plugins.java.api.IssuableSubscriptionVisitor;
+import org.sonar.plugins.java.api.tree.ExpressionTree;
 import org.sonar.plugins.java.api.tree.IfStatementTree;
 import org.sonar.plugins.java.api.tree.LiteralTree;
+import org.sonar.plugins.java.api.tree.MemberSelectExpressionTree;
+import org.sonar.plugins.java.api.tree.LambdaExpressionTree;
+import org.sonar.plugins.java.api.tree.MethodInvocationTree;
 import org.sonar.plugins.java.api.tree.Tree;
 
 import java.util.Arrays;
@@ -20,6 +24,7 @@ public class UndefineMagicConstantRule extends IssuableSubscriptionVisitor {
 
     private static final String MESSAGE = "魔法值【%s】";
     private static final List<String> LITERAL_WHITE_LIST = Arrays.asList("0", "1", "-1", "true", "false");
+    private static final List<String> LOGGER_METHOD_NAMES = Arrays.asList("trace", "debug", "info", "warn", "error");
 
     @Override
     public List<Tree.Kind> nodesToVisit() {
@@ -47,6 +52,9 @@ public class UndefineMagicConstantRule extends IssuableSubscriptionVisitor {
         if (value == null || LITERAL_WHITE_LIST.contains(value)) {
             return false;
         }
+        if (isLoggerMethodArgument(literal)) {
+            return false;
+        }
 
         Tree parent = literal.parent();
         while (parent != null) {
@@ -61,6 +69,56 @@ public class UndefineMagicConstantRule extends IssuableSubscriptionVisitor {
             parent = parent.parent();
         }
         return false;
+    }
+
+    private boolean isLoggerMethodArgument(LiteralTree literal) {
+        Tree parent = literal.parent();
+        while (parent != null) {
+            if (parent.is(Tree.Kind.METHOD_INVOCATION)) {
+                MethodInvocationTree methodInvocation = (MethodInvocationTree) parent;
+                return methodInvocation.arguments().contains(literal) && isLoggerMethodInvocation(methodInvocation);
+            }
+            if (parent.is(Tree.Kind.LAMBDA_EXPRESSION)) {
+                return isInsideLambdaOfLogger(parent);
+            }
+            if (parent.is(Tree.Kind.IF_STATEMENT, Tree.Kind.FOR_STATEMENT, Tree.Kind.WHILE_STATEMENT)) {
+                return false;
+            }
+            parent = parent.parent();
+        }
+        return false;
+    }
+
+    private boolean isInsideLambdaOfLogger(Tree lambda) {
+        Tree parent = lambda.parent();
+        while (parent != null) {
+            if (parent.is(Tree.Kind.METHOD_INVOCATION)) {
+                MethodInvocationTree methodInvocation = (MethodInvocationTree) parent;
+                return methodInvocation.arguments().contains(lambda) && isLoggerMethodInvocation(methodInvocation);
+            }
+            if (parent.is(Tree.Kind.LAMBDA_EXPRESSION)) {
+                return isInsideLambdaOfLogger(parent);
+            }
+            if (parent.is(Tree.Kind.IF_STATEMENT, Tree.Kind.FOR_STATEMENT, Tree.Kind.WHILE_STATEMENT)) {
+                return false;
+            }
+            parent = parent.parent();
+        }
+        return false;
+    }
+
+    private boolean isLoggerMethodInvocation(MethodInvocationTree methodInvocation) {
+        if (!methodInvocation.methodSelect().is(Tree.Kind.MEMBER_SELECT)) {
+            return false;
+        }
+        MemberSelectExpressionTree methodSelect = (MemberSelectExpressionTree) methodInvocation.methodSelect();
+        String methodName = methodSelect.identifier().name();
+        if (!LOGGER_METHOD_NAMES.contains(methodName)) {
+            return false;
+        }
+        ExpressionTree receiver = methodSelect.expression();
+        String receiverType = receiver.symbolType() == null ? null : receiver.symbolType().fullyQualifiedName();
+        return "org.slf4j.Logger".equals(receiverType) || "log".equals(receiver.toString()) || "logger".equals(receiver.toString());
     }
 
     /**
