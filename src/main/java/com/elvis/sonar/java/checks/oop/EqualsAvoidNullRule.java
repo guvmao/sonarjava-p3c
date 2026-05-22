@@ -6,6 +6,7 @@ import org.sonar.check.RuleProperty;
 import org.sonar.plugins.java.api.IssuableSubscriptionVisitor;
 import org.sonar.plugins.java.api.semantic.Symbol;
 import org.sonar.plugins.java.api.semantic.Type;
+import org.sonar.plugins.java.api.tree.BinaryExpressionTree;
 import org.sonar.plugins.java.api.tree.ExpressionTree;
 import org.sonar.plugins.java.api.tree.IdentifierTree;
 import org.sonar.plugins.java.api.tree.MemberSelectExpressionTree;
@@ -30,6 +31,7 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     private static final String MESSAGE = "【%s】应该作为equals的参数，而不是调用方";
     private static final String METHOD_EQUALS = "equals";
     private static final String OBJECTS_CLASS = "java.util.Objects";
+    private static final String METHOD_IS_NOT_EMPTY = "isNotEmpty";
     private static final String DEFAULT_ALLOWED_CONSTANT_PATTERNS = "";
     private static final String DEFAULT_ALLOWED_UTILITY_CLASS_PATTERNS = ".*\\.StringUtil,.*\\.StringUtils,.*\\.StrUtil";
 
@@ -83,8 +85,8 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
             return;
         }
 
-        // 检查参数是否为常量或确定不为null的对象
-        if (!isConstantOrNonNullObject(receiver)) {
+        // 检查参数是否为常量、确定不为null的对象或已被短路条件保护的对象
+        if (!isConstantOrNonNullObject(receiver) && !isProtectedByPreviousNonNullCheck(methodInvocation, receiver)) {
             String methodName = receiver == null ? "Object" : expressionToText(receiver);
             reportIssue(receiver, String.format(MESSAGE, methodName));
         }
@@ -196,6 +198,59 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
             return isRootedInEnum(((MethodInvocationTree) expression).methodSelect());
         }
         return false;
+    }
+
+    private boolean isProtectedByPreviousNonNullCheck(MethodInvocationTree methodInvocation, ExpressionTree receiver) {
+        if (receiver == null) {
+            return false;
+        }
+        String receiverText = expressionToText(receiver);
+        Tree current = methodInvocation;
+        Tree parent = current.parent();
+        while (parent != null && parent.is(Tree.Kind.METHOD_INVOCATION, Tree.Kind.MEMBER_SELECT)) {
+            current = parent;
+            parent = parent.parent();
+        }
+        while (parent != null && parent.is(Tree.Kind.CONDITIONAL_AND)) {
+            BinaryExpressionTree conditionalAnd = (BinaryExpressionTree) parent;
+            if (conditionalAnd.rightOperand() == current && containsNonNullCheck(conditionalAnd.leftOperand(), receiverText)) {
+                return true;
+            }
+            current = parent;
+            parent = parent.parent();
+        }
+        return false;
+    }
+
+    private boolean containsNonNullCheck(ExpressionTree expression, String receiverText) {
+        if (isNonNullCheck(expression, receiverText)) {
+            return true;
+        }
+        if (expression.is(Tree.Kind.CONDITIONAL_AND)) {
+            BinaryExpressionTree binaryExpression = (BinaryExpressionTree) expression;
+            return containsNonNullCheck(binaryExpression.leftOperand(), receiverText)
+                    || containsNonNullCheck(binaryExpression.rightOperand(), receiverText);
+        }
+        return false;
+    }
+
+    private boolean isNonNullCheck(ExpressionTree expression, String receiverText) {
+        if (expression.is(Tree.Kind.NOT_EQUAL_TO)) {
+            BinaryExpressionTree binaryExpression = (BinaryExpressionTree) expression;
+            return isNullLiteral(binaryExpression.leftOperand()) && receiverText.equals(expressionToText(binaryExpression.rightOperand()))
+                    || isNullLiteral(binaryExpression.rightOperand()) && receiverText.equals(expressionToText(binaryExpression.leftOperand()));
+        }
+        if (expression.is(Tree.Kind.METHOD_INVOCATION)) {
+            MethodInvocationTree methodInvocation = (MethodInvocationTree) expression;
+            return METHOD_IS_NOT_EMPTY.equals(MethodInvocationTreeCheckUtil.getMethodName(methodInvocation))
+                    && methodInvocation.arguments().size() == 1
+                    && receiverText.equals(expressionToText(methodInvocation.arguments().get(0)));
+        }
+        return false;
+    }
+
+    private boolean isNullLiteral(ExpressionTree expression) {
+        return expression.is(Tree.Kind.NULL_LITERAL);
     }
 
     private boolean isFinalVariable(Symbol symbol) {

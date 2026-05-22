@@ -6,6 +6,7 @@ import org.sonar.plugins.java.api.semantic.Symbol;
 import org.sonar.plugins.java.api.tree.BinaryExpressionTree;
 import org.sonar.plugins.java.api.tree.ExpressionTree;
 import org.sonar.plugins.java.api.tree.IdentifierTree;
+import org.sonar.plugins.java.api.tree.LiteralTree;
 import org.sonar.plugins.java.api.tree.MemberSelectExpressionTree;
 import org.sonar.plugins.java.api.tree.Tree;
 
@@ -40,6 +41,14 @@ public class WrapperTypeEqualityRule extends IssuableSubscriptionVisitor {
             ExpressionTree rightOperand = binaryExpression.rightOperand();
             // 检查是否为包装类型
             if (isWrapperType(leftOperand) && isWrapperType(rightOperand)) {
+                // 两侧都是字面量则跳过
+                if (isLiteral(leftOperand) && isLiteral(rightOperand)) {
+                    return;
+                }
+                // 一侧是Integer/Long字面量且在缓存范围内则跳过
+                if (isInCacheRange(leftOperand) || isInCacheRange(rightOperand)) {
+                    return;
+                }
                 reportIssue(binaryExpression,String.format(MESSAGE,binaryExpression.leftOperand().toString()));
             }
         }
@@ -55,6 +64,12 @@ public class WrapperTypeEqualityRule extends IssuableSubscriptionVisitor {
         if (expression.is(Tree.Kind.INT_LITERAL, Tree.Kind.LONG_LITERAL, Tree.Kind.FLOAT_LITERAL, Tree.Kind.DOUBLE_LITERAL,
                 Tree.Kind.BOOLEAN_LITERAL, Tree.Kind.CHAR_LITERAL, Tree.Kind.STRING_LITERAL)) {
             return true;
+        }
+
+        // 负数字面量在AST中表示为 UNARY_MINUS(INT_LITERAL)
+        if (expression.is(Tree.Kind.UNARY_MINUS)) {
+            ExpressionTree operand = ((org.sonar.plugins.java.api.tree.UnaryExpressionTree) expression).expression();
+            return operand.is(Tree.Kind.INT_LITERAL, Tree.Kind.LONG_LITERAL, Tree.Kind.FLOAT_LITERAL, Tree.Kind.DOUBLE_LITERAL);
         }
 
         // 检查是否为包装类型的变量或表达式
@@ -75,6 +90,36 @@ public class WrapperTypeEqualityRule extends IssuableSubscriptionVisitor {
             }
         }
 
+        return false;
+    }
+
+    private boolean isLiteral(ExpressionTree expression) {
+        return expression.is(Tree.Kind.INT_LITERAL, Tree.Kind.LONG_LITERAL, Tree.Kind.FLOAT_LITERAL, Tree.Kind.DOUBLE_LITERAL,
+                Tree.Kind.BOOLEAN_LITERAL, Tree.Kind.CHAR_LITERAL, Tree.Kind.STRING_LITERAL);
+    }
+
+    /**
+     * 判断字面量是否在Integer/Long缓存范围内（-128~127）
+     */
+    private boolean isInCacheRange(ExpressionTree expression) {
+        boolean negative = false;
+        ExpressionTree target = expression;
+        if (expression.is(Tree.Kind.UNARY_MINUS)) {
+            negative = true;
+            target = ((org.sonar.plugins.java.api.tree.UnaryExpressionTree) expression).expression();
+        }
+        if (target.is(Tree.Kind.INT_LITERAL, Tree.Kind.LONG_LITERAL)) {
+            try {
+                String token = ((LiteralTree) target).token().text();
+                long value = Long.parseLong(token.replace("L", "").replace("l", ""));
+                if (negative) {
+                    value = -value;
+                }
+                return value >= -128 && value <= 127;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
         return false;
     }
 }

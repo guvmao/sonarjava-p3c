@@ -7,7 +7,15 @@
         }
     }
 </pre>
-<p>正例：</p>
+<p>正例1：</p>
+<pre>
+    public void check(String input) {
+        if (Objects.equals(input, "expectedValue")) {
+            System.out.println("Input matches the expected value.");
+        }
+    }
+</pre>
+<p>正例2：</p>
 <pre>
     public void check2 () {
         boolean result = "expectedValue".equals(input);
@@ -16,5 +24,24 @@
         }
     }
 </pre>
+
+<p>错例：</p>
+<pre>
+    if (HussarUtils.isEmpty(workInProcessDetail.getNewPipLevel())) {
+        if (level.equals(sfcProduct.getPipLevel())) {
+            throw new HussarException("等级未改变");
+        }
+    }
+</pre>
+
+<p>正例：</p>
+<pre>
+    public void check(String input) {
+        if (Objects.equals(input, "expectedValue")) {
+            System.out.println("Input matches the expected value.");
+        }
+    }
+</pre>
+
 <p>参数 <code>allowedConstantPatterns</code> 可用于配置语义解析失败时允许放行的常量白名单，支持正则表达式，多个表达式使用逗号分隔。</p>
 <p>示例：<code>StringConstants\.STRING_ONE,.*Constants\.STRING_.*</code></p>

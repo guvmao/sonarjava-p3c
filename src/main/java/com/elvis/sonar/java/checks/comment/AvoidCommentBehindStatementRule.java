@@ -158,21 +158,31 @@ public class AvoidCommentBehindStatementRule extends IssuableSubscriptionVisitor
     }
 
     /**
-     * 注释符是否文本
+     * 注释符是否在文本（字符串或字符）内部
      *
      * @param line
      * @return
      */
     private boolean isCommentNotText(String line) {
-        int slashAt = line.lastIndexOf(CommentUtil.SINGLE_LINE);
-        if (slashAt - 1 < 0) {
+        int slashAt = line.indexOf(CommentUtil.SINGLE_LINE);
+        if (slashAt < 0) {
             return false;
         }
-        String preText = line.substring(slashAt - 1, slashAt);
-        if ("\"".equals(preText) || "'".equals(preText)) {
-            return false;
+        return !isInsideString(line, slashAt);
+    }
+
+    private boolean isInsideString(String line, int position) {
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        for (int i = 0; i < position; i++) {
+            char c = line.charAt(i);
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            }
         }
-        return true;
+        return inSingleQuote || inDoubleQuote;
     }
 
     /**

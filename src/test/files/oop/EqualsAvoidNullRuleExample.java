@@ -1,5 +1,8 @@
 package oop;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.Objects;
 
 public class EqualsAvoidNullRuleExample {
@@ -91,6 +94,22 @@ public class EqualsAvoidNullRuleExample {
             System.out.println("Status ENABLE code matches.");
         }
     }
+
+    public void checkHussarUtilsGuard(WorkInProcessDetail workInProcessDetail, String level, SfcProduct sfcProduct) {
+        if (HussarUtils.isEmpty(workInProcessDetail.getNewPipLevel())) {
+            if (HussarUtils.isNotEmpty(level) && level.equals(sfcProduct.getPipLevel())) { // Compliant
+                throw new RuntimeException("等级未改变");
+            }
+        }
+    }
+
+    public boolean checkDateGuard(Date dateTime, LocalDate date) {
+        LocalDate parmDate = null;
+        if (dateTime != null) {
+            parmDate = dateTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        }
+        return dateTime != null && parmDate != null && parmDate.equals(date); // Compliant
+    }
 }
 
 enum Status {
@@ -117,5 +136,30 @@ class RateQueryDTO {
 
     String getToCurrency() {
         return "CNY";
+    }
+}
+
+class HussarUtils {
+
+    static boolean isEmpty(Object object) {
+        return object == null;
+    }
+
+    static boolean isNotEmpty(Object object) {
+        return object != null;
+    }
+}
+
+class WorkInProcessDetail {
+
+    String getNewPipLevel() {
+        return "1";
+    }
+}
+
+class SfcProduct {
+
+    String getPipLevel() {
+        return "1";
     }
 }

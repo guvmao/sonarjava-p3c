@@ -18,6 +18,9 @@ public abstract class AvoidCommentBehindStatementExample {
             System.out.println("test1");
         }
         System.out.println("test"); //行尾 // Noncompliant
+
+        String url = "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=%s&corpsecret=%s"; // Compliant - URL in string
+        String singleQuote = 'a' + "https://example.com"; // Compliant - URL in string
     }
 
 }
