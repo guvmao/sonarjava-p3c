@@ -34,6 +34,9 @@ public class BooleanPropertyShouldNotStartWithIsRule extends IssuableSubscriptio
 
     @Override
     public void visitNode(Tree tree) {
+        if (!isClassField(tree)) {
+            return;
+        }
         VariableTree variableTree = (VariableTree) tree;
         IdentifierTree simpleName = variableTree.simpleName();
         TypeTree type = variableTree.type();
@@ -44,5 +47,10 @@ public class BooleanPropertyShouldNotStartWithIsRule extends IssuableSubscriptio
         if (simpleName.name().toLowerCase().indexOf(IS) == 0) {
             reportIssue(simpleName, String.format("【%s】布尔字段不要加is前缀", simpleName.name()));
         }
+    }
+
+    private boolean isClassField(Tree tree) {
+        Tree parent = tree.parent();
+        return parent != null && parent.is(Tree.Kind.CLASS, Tree.Kind.INTERFACE, Tree.Kind.ENUM, Tree.Kind.ANNOTATION_TYPE);
     }
 }
