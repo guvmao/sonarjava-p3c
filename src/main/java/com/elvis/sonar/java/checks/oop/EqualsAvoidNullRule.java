@@ -31,6 +31,7 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     private static final String MESSAGE = "【%s】应该作为equals的参数，而不是调用方";
     private static final String METHOD_EQUALS = "equals";
     private static final String OBJECTS_CLASS = "java.util.Objects";
+    private static final String OBJECTS_SIMPLE_NAME = "Objects";
     private static final String METHOD_IS_NOT_EMPTY = "isNotEmpty";
     private static final String DEFAULT_ALLOWED_CONSTANT_PATTERNS = "";
     private static final String DEFAULT_ALLOWED_UTILITY_CLASS_PATTERNS = ".*\\.StringUtil,.*\\.StringUtils,.*\\.StrUtil";
@@ -102,18 +103,21 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
             return false;
         }
 
-        String typeName = null;
-        if (receiver.symbolType() != null) {
-            typeName = receiver.symbolType().fullyQualifiedName();
-        }
-        if (typeName == null) {
-            typeName = expressionToText(receiver);
+        Type receiverType = receiver.symbolType();
+        if (receiverType != null && !receiverType.isUnknown()) {
+            String typeName = receiverType.fullyQualifiedName();
+            if (OBJECTS_CLASS.equals(typeName)) {
+                return true;
+            }
+            return matchesAllowedUtilityClassPattern(typeName);
         }
 
-        if (OBJECTS_CLASS.equals(typeName)) {
+        // 语义解析失败时，用接收者文本兜底匹配简单类名
+        String receiverText = expressionToText(receiver);
+        if (OBJECTS_SIMPLE_NAME.equals(receiverText)) {
             return true;
         }
-        return matchesAllowedUtilityClassPattern(typeName);
+        return matchesAllowedUtilityClassPattern(receiverText);
     }
 
     private boolean isLiteral(ExpressionTree expression) {

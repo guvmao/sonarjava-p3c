@@ -110,6 +110,10 @@ public class EqualsAvoidNullRuleExample {
         }
         return dateTime != null && parmDate != null && parmDate.equals(date); // Compliant
     }
+
+    public boolean checkObjectsEqualsInLambda(java.util.List<DisclosureItem> disclosureList) {
+        return disclosureList.stream().anyMatch(item -> Objects.equals(ApprovalStatusEnum.TODO.getValue(), item.getApprovalStatus())); // Compliant
+    }
 }
 
 enum Status {
@@ -161,5 +165,22 @@ class SfcProduct {
 
     String getPipLevel() {
         return "1";
+    }
+}
+
+class DisclosureItem {
+    String getApprovalStatus() {
+        return "TODO";
+    }
+}
+
+class ApprovalStatusEnum {
+    static final ApprovalStatusEnum TODO = new ApprovalStatusEnum("TODO");
+    private String value;
+    ApprovalStatusEnum(String value) {
+        this.value = value;
+    }
+    String getValue() {
+        return value;
     }
 }
