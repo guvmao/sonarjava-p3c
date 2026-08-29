@@ -2,6 +2,7 @@ package com.elvis.sonar.java.checks.flowcontrol;
 
 import org.sonar.check.Rule;
 import org.sonar.plugins.java.api.IssuableSubscriptionVisitor;
+import org.sonar.plugins.java.api.tree.BlockTree;
 import org.sonar.plugins.java.api.tree.CaseGroupTree;
 import org.sonar.plugins.java.api.tree.IfStatementTree;
 import org.sonar.plugins.java.api.tree.StatementTree;
@@ -40,31 +41,22 @@ public class SwitchStatementRule extends IssuableSubscriptionVisitor {
      * @param switchStatement
      */
     private void checkDefault(SwitchStatementTree switchStatement) {
-        boolean hasDefault = false;
-        List<CaseGroupTree> caseGroupTrees = switchStatement.cases();
-        for (CaseGroupTree caseGroup : caseGroupTrees) {
-            String caseName = getNameByCaseLabel(caseGroup);
-            if (DEFAULT_TEXT.equals(caseName)) {
-                hasDefault = true;
-                break;
-            }
-        }
+        boolean hasDefault = switchStatement.cases().stream().anyMatch(this::containsDefaultLabel);
         if (!hasDefault) {
             reportIssue(switchStatement, SWITCH_MUST_HAVE_DEFAULT_MESSAGE);
         }
     }
 
     /**
-     * 获取case分支的名称
-     * @param caseGroup
-     * @return
+     * 判断case分组是否包含default标签
+     *
+     * @param caseGroup case分组
+     * @return 是否包含default标签
      */
-    private String getNameByCaseLabel(CaseGroupTree caseGroup) {
-        if (caseGroup == null || caseGroup.labels() == null
-                || caseGroup.labels() == null || caseGroup.labels().size() == 0) {
-            return null;
-        }
-        return caseGroup.labels().get(0).caseOrDefaultKeyword().text();
+    private boolean containsDefaultLabel(CaseGroupTree caseGroup) {
+        return caseGroup != null && caseGroup.labels() != null
+                && caseGroup.labels().stream()
+                .anyMatch(label -> DEFAULT_TEXT.equals(label.caseOrDefaultKeyword().text()));
     }
 
     /**
@@ -73,8 +65,7 @@ public class SwitchStatementRule extends IssuableSubscriptionVisitor {
      */
     private void checkFallThrough(SwitchStatementTree switchStatement) {
         for (CaseGroupTree caseGroup : switchStatement.cases()) {
-            String caseName = getNameByCaseLabel(caseGroup);
-            if (DEFAULT_TEXT.equals(caseName)) {
+            if (containsDefaultLabel(caseGroup)) {
                 continue;
             }
             List<StatementTree> statements = caseGroup.body();
@@ -90,6 +81,13 @@ public class SwitchStatementRule extends IssuableSubscriptionVisitor {
      * @return
      */
     private boolean isTerminating(Tree statement) {
+        if (statement == null) {
+            return false;
+        }
+        if (statement.is(Tree.Kind.BLOCK)) {
+            List<StatementTree> statements = ((BlockTree) statement).body();
+            return !statements.isEmpty() && isTerminating(statements.get(statements.size() - 1));
+        }
         return statement.is(Tree.Kind.BREAK_STATEMENT, Tree.Kind.RETURN_STATEMENT, Tree.Kind.THROW_STATEMENT, Tree.Kind.CONTINUE_STATEMENT)
                 || (statement.is(Tree.Kind.IF_STATEMENT) && isIfWithTerminatingThenOrElse((IfStatementTree) statement));
     }

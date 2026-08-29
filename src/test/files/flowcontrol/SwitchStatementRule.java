@@ -37,4 +37,40 @@ class SwitchStatementRule {
         }
         return number;
     }
+
+    public void checkDefaultAfterMultipleCases(Status status) {
+        switch (status) { // Compliant
+            case IMPLEMENT_PLAN:
+                deleteByProposalId();
+                break;
+            case APPLICANT:
+            case ADMIN_CHECK:
+            default:
+                break;
+        }
+    }
+
+    public int checkCaseBlockWithReturn(Status status) {
+        switch (status) {
+            case IMPLEMENT_PLAN: {
+                deleteByProposalId();
+                return 1;
+            }
+            case APPLICANT: {
+                return 2;
+            }
+            case ADMIN_CHECK:
+            default:
+                return 0;
+        }
+    }
+
+    private void deleteByProposalId() {
+    }
+
+    enum Status {
+        IMPLEMENT_PLAN,
+        APPLICANT,
+        ADMIN_CHECK
+    }
 }
