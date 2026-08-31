@@ -1,0 +1,21 @@
+<p>if语句嵌套不应超过3层。过深的嵌套会降低代码的可读性和可维护性。</p>
+<p>错例：</p>
+<pre>
+    if (condition1) {
+        if (condition2) {
+            if (condition3) {
+                if (condition4) {
+                    doSomething();
+                }
+            }
+        }
+    }
+</pre>
+<p>正例：</p>
+<pre>
+    if (!condition1 || !condition2 || !condition3) {
+        return;
+    }
+    doSomething();
+</pre>
+<p>建议使用卫语句、拆分方法或策略模式降低嵌套层数。</p>

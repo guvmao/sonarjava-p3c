@@ -1,0 +1,15 @@
+{
+  "title": "if语句嵌套超过3层",
+  "type": "CODE_SMELL",
+  "status": "ready",
+  "remediation": {
+    "func": "Constant\/Issue",
+    "constantCost": "5min"
+  },
+  "tags": [
+    "sonarjava-p3c"
+  ],
+  "defaultSeverity": "MAJOR",
+  "sqKey": "IfNestingRule",
+  "scope": "Main"
+}

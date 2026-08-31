@@ -40,6 +40,7 @@ import com.elvis.sonar.java.checks.exception.MethodReturnWrapperTypeRule;
 import com.elvis.sonar.java.checks.exception.TransactionMustHaveRollbackRule;
 import com.elvis.sonar.java.checks.flowcontrol.AvoidComplexConditionRule;
 import com.elvis.sonar.java.checks.flowcontrol.AvoidNegationOperatorRule;
+import com.elvis.sonar.java.checks.flowcontrol.IfNestingRule;
 import com.elvis.sonar.java.checks.flowcontrol.NeedBraceRule;
 import com.elvis.sonar.java.checks.flowcontrol.SwitchStatementRule;
 import com.elvis.sonar.java.checks.naming.AbstractClassShouldStartWithAbstractNamingRule;
@@ -210,6 +211,7 @@ public final class RulesList {
                         AvoidNegationOperatorRule.class,
                         SwitchStatementRule.class,
                         NeedBraceRule.class,
+                        IfNestingRule.class,
                         AvoidComplexConditionRule.class)));
     }
 
