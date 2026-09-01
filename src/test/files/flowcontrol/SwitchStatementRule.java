@@ -65,6 +65,37 @@ class SwitchStatementRule {
         }
     }
 
+    public int checkNestedSwitchWithReturn(int quarterIndex, int metricIndex) {
+        switch (quarterIndex) { // Compliant
+            case 0:
+                switch (metricIndex) { // Compliant
+                    case 0:
+                        return 1;
+                    default:
+                        return 0;
+                }
+            case 1:
+                return 2;
+            default:
+                return 3;
+        }
+    }
+
+    public void checkNestedSwitchWithBreak(int outerValue, int innerValue) {
+        switch (outerValue) {
+            case 0: // Noncompliant {{switch中每个case需要通过break/return等来终止}}
+                switch (innerValue) {
+                    case 0:
+                        break;
+                    default:
+                        break;
+                }
+            case 1:
+            default:
+                break;
+        }
+    }
+
     private void deleteByProposalId() {
     }
 

@@ -88,8 +88,56 @@ public class SwitchStatementRule extends IssuableSubscriptionVisitor {
             List<StatementTree> statements = ((BlockTree) statement).body();
             return !statements.isEmpty() && isTerminating(statements.get(statements.size() - 1));
         }
+        if (statement.is(Tree.Kind.SWITCH_STATEMENT)) {
+            return isSwitchTerminating((SwitchStatementTree) statement);
+        }
         return statement.is(Tree.Kind.BREAK_STATEMENT, Tree.Kind.RETURN_STATEMENT, Tree.Kind.THROW_STATEMENT, Tree.Kind.CONTINUE_STATEMENT)
                 || (statement.is(Tree.Kind.IF_STATEMENT) && isIfWithTerminatingThenOrElse((IfStatementTree) statement));
+    }
+
+    /**
+     * 检查嵌套switch是否能够保证执行流离开当前外层语句。
+     * 内层switch的break只会离开内层switch，不能作为外层case的终止语句。
+     *
+     * @param switchStatement 嵌套switch
+     * @return 是否终止
+     */
+    private boolean isSwitchTerminating(SwitchStatementTree switchStatement) {
+        return !switchStatement.cases().isEmpty()
+                && switchStatement.cases().stream().anyMatch(this::containsDefaultLabel)
+                && switchStatement.cases().stream().allMatch(caseGroup -> {
+                    List<StatementTree> statements = caseGroup.body();
+                    return !statements.isEmpty()
+                            && isStrictlyTerminating(statements.get(statements.size() - 1));
+                });
+    }
+
+    /**
+     * 检查嵌套switch分支是否严格终止。这里不能把break当作终止语句，
+     * 因为break只会跳出当前嵌套switch。
+     *
+     * @param statement 语句
+     * @return 是否严格终止
+     */
+    private boolean isStrictlyTerminating(Tree statement) {
+        if (statement == null) {
+            return false;
+        }
+        if (statement.is(Tree.Kind.BLOCK)) {
+            List<StatementTree> statements = ((BlockTree) statement).body();
+            return !statements.isEmpty() && isStrictlyTerminating(statements.get(statements.size() - 1));
+        }
+        if (statement.is(Tree.Kind.SWITCH_STATEMENT)) {
+            return isSwitchTerminating((SwitchStatementTree) statement);
+        }
+        if (statement.is(Tree.Kind.IF_STATEMENT)) {
+            IfStatementTree ifStatement = (IfStatementTree) statement;
+            return ifStatement.thenStatement() != null
+                    && ifStatement.elseStatement() instanceof StatementTree
+                    && isStrictlyTerminating(ifStatement.thenStatement())
+                    && isStrictlyTerminating(ifStatement.elseStatement());
+        }
+        return statement.is(Tree.Kind.RETURN_STATEMENT, Tree.Kind.THROW_STATEMENT, Tree.Kind.CONTINUE_STATEMENT);
     }
 
     /**
