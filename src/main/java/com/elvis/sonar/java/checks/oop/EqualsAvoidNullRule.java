@@ -11,6 +11,7 @@ import org.sonar.plugins.java.api.tree.ExpressionTree;
 import org.sonar.plugins.java.api.tree.IdentifierTree;
 import org.sonar.plugins.java.api.tree.MemberSelectExpressionTree;
 import org.sonar.plugins.java.api.tree.MethodInvocationTree;
+import org.sonar.plugins.java.api.tree.ParenthesizedTree;
 import org.sonar.plugins.java.api.tree.Tree;
 import org.sonar.plugins.java.api.tree.VariableTree;
 
@@ -33,6 +34,7 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
     private static final String OBJECTS_CLASS = "java.util.Objects";
     private static final String OBJECTS_SIMPLE_NAME = "Objects";
     private static final String METHOD_IS_NOT_EMPTY = "isNotEmpty";
+    private static final String METHOD_IS_EMPTY = "isEmpty";
     private static final String DEFAULT_ALLOWED_CONSTANT_PATTERNS = "";
     private static final String DEFAULT_ALLOWED_UTILITY_CLASS_PATTERNS = ".*\\.StringUtil,.*\\.StringUtils,.*\\.StrUtil";
 
@@ -211,19 +213,41 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
         String receiverText = expressionToText(receiver);
         Tree current = methodInvocation;
         Tree parent = current.parent();
-        while (parent != null && parent.is(Tree.Kind.METHOD_INVOCATION, Tree.Kind.MEMBER_SELECT)) {
+        // 跳过调用链以及逻辑取反、括号包裹，定位到参与条件运算的最外层表达式
+        while (parent != null && parent.is(Tree.Kind.METHOD_INVOCATION, Tree.Kind.MEMBER_SELECT,
+                Tree.Kind.LOGICAL_COMPLEMENT, Tree.Kind.PARENTHESIZED_EXPRESSION)) {
             current = parent;
             parent = parent.parent();
         }
-        while (parent != null && parent.is(Tree.Kind.CONDITIONAL_AND)) {
-            BinaryExpressionTree conditionalAnd = (BinaryExpressionTree) parent;
-            if (conditionalAnd.rightOperand() == current && containsNonNullCheck(conditionalAnd.leftOperand(), receiverText)) {
+        while (parent != null) {
+            if (parent.is(Tree.Kind.PARENTHESIZED_EXPRESSION)) {
+                current = parent;
+                parent = parent.parent();
+                continue;
+            }
+            if (!parent.is(Tree.Kind.CONDITIONAL_AND, Tree.Kind.CONDITIONAL_OR)) {
+                break;
+            }
+            BinaryExpressionTree binaryExpression = (BinaryExpressionTree) parent;
+            if (binaryExpression.rightOperand() == current && isGuardedByLeftOperand(parent, binaryExpression.leftOperand(), receiverText)) {
                 return true;
             }
             current = parent;
             parent = parent.parent();
         }
         return false;
+    }
+
+    /**
+     * 判断左操作数是否在当前表达式执行前为其提供了空指针保护。
+     * && 链上左侧的 != null / isNotEmpty 保护右侧；
+     * || 链上左侧的 == null / isEmpty 短路保护右侧（左侧为假即意味着对象非 null）。
+     */
+    private boolean isGuardedByLeftOperand(Tree binaryTree, ExpressionTree leftOperand, String receiverText) {
+        if (binaryTree.is(Tree.Kind.CONDITIONAL_AND)) {
+            return containsNonNullCheck(leftOperand, receiverText);
+        }
+        return containsNullCheck(leftOperand, receiverText);
     }
 
     private boolean containsNonNullCheck(ExpressionTree expression, String receiverText) {
@@ -234,6 +258,28 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
             BinaryExpressionTree binaryExpression = (BinaryExpressionTree) expression;
             return containsNonNullCheck(binaryExpression.leftOperand(), receiverText)
                     || containsNonNullCheck(binaryExpression.rightOperand(), receiverText);
+        }
+        if (expression.is(Tree.Kind.PARENTHESIZED_EXPRESSION)) {
+            return containsNonNullCheck(((ParenthesizedTree) expression).expression(), receiverText);
+        }
+        return false;
+    }
+
+    /**
+     * 判断表达式集合中是否包含针对目标对象的 null 判断（== null），用于 || 短路保护。
+     * 仅递归展开 || 与括号，&& 的任一分支为假都不能保证对象非 null。
+     */
+    private boolean containsNullCheck(ExpressionTree expression, String receiverText) {
+        if (isNullCheck(expression, receiverText)) {
+            return true;
+        }
+        if (expression.is(Tree.Kind.CONDITIONAL_OR)) {
+            BinaryExpressionTree binaryExpression = (BinaryExpressionTree) expression;
+            return containsNullCheck(binaryExpression.leftOperand(), receiverText)
+                    || containsNullCheck(binaryExpression.rightOperand(), receiverText);
+        }
+        if (expression.is(Tree.Kind.PARENTHESIZED_EXPRESSION)) {
+            return containsNullCheck(((ParenthesizedTree) expression).expression(), receiverText);
         }
         return false;
     }
@@ -247,6 +293,21 @@ public class EqualsAvoidNullRule extends IssuableSubscriptionVisitor {
         if (expression.is(Tree.Kind.METHOD_INVOCATION)) {
             MethodInvocationTree methodInvocation = (MethodInvocationTree) expression;
             return METHOD_IS_NOT_EMPTY.equals(MethodInvocationTreeCheckUtil.getMethodName(methodInvocation))
+                    && methodInvocation.arguments().size() == 1
+                    && receiverText.equals(expressionToText(methodInvocation.arguments().get(0)));
+        }
+        return false;
+    }
+
+    private boolean isNullCheck(ExpressionTree expression, String receiverText) {
+        if (expression.is(Tree.Kind.EQUAL_TO)) {
+            BinaryExpressionTree binaryExpression = (BinaryExpressionTree) expression;
+            return isNullLiteral(binaryExpression.leftOperand()) && receiverText.equals(expressionToText(binaryExpression.rightOperand()))
+                    || isNullLiteral(binaryExpression.rightOperand()) && receiverText.equals(expressionToText(binaryExpression.leftOperand()));
+        }
+        if (expression.is(Tree.Kind.METHOD_INVOCATION)) {
+            MethodInvocationTree methodInvocation = (MethodInvocationTree) expression;
+            return METHOD_IS_EMPTY.equals(MethodInvocationTreeCheckUtil.getMethodName(methodInvocation))
                     && methodInvocation.arguments().size() == 1
                     && receiverText.equals(expressionToText(methodInvocation.arguments().get(0)));
         }

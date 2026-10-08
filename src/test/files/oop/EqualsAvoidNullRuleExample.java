@@ -114,6 +114,48 @@ public class EqualsAvoidNullRuleExample {
     public boolean checkObjectsEqualsInLambda(java.util.List<DisclosureItem> disclosureList) {
         return disclosureList.stream().anyMatch(item -> Objects.equals(ApprovalStatusEnum.TODO.getValue(), item.getApprovalStatus())); // Compliant
     }
+
+    public void checkOrNullGuard(OrgDTO org, String orgL1Id) {
+        if (org == null || org.getOrgL1Id() == null || !org.getOrgL1Id().equals(orgL1Id)) { // Compliant
+            System.out.println("orgL1Id matches.");
+        }
+    }
+
+    public void checkOrNullGuardSimple(String value, String other) {
+        if (value == null || !value.equals(other)) { // Compliant
+            System.out.println("value matches.");
+        }
+    }
+
+    public void checkOrEmptyGuard(String value, String other) {
+        if (HussarUtils.isEmpty(value) || !value.equals(other)) { // Compliant
+            System.out.println("value matches.");
+        }
+    }
+
+    public void checkOrNullGuardInParens(String value, String other) {
+        if (value == null || !(value.equals(other))) { // Compliant
+            System.out.println("value matches.");
+        }
+    }
+
+    public void checkOrNullGuardAfter(String value, String other) {
+        if (value.equals(other) || value == null) { // Noncompliant {{【value】应该作为equals的参数，而不是调用方}}
+            System.out.println("value matches.");
+        }
+    }
+
+    public void checkOrUnrelatedGuard(String value, String other, String unrelated) {
+        if (unrelated == null || value.equals(other)) { // Noncompliant {{【value】应该作为equals的参数，而不是调用方}}
+            System.out.println("value matches.");
+        }
+    }
+
+    public void checkMixedAndOrGuard(String value, String other) {
+        if (value == null || (!value.equals(other) && other.length() > 1)) { // Compliant
+            System.out.println("value matches.");
+        }
+    }
 }
 
 enum Status {
@@ -171,6 +213,13 @@ class SfcProduct {
 class DisclosureItem {
     String getApprovalStatus() {
         return "TODO";
+    }
+}
+
+class OrgDTO {
+
+    String getOrgL1Id() {
+        return "1";
     }
 }
 
